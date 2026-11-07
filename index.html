@@ -179,6 +179,14 @@ const $ = (s) => document.querySelector(s);
 const main = $("#main");
 const cap = async (n) => { try { return (await window.claude?.use?.(n)) ?? null; } catch (e) { return null; } };
 const STATIC_DEMO = true;
+const SHEET_ENDPOINT = "https://script.google.com/macros/s/AKfycbxb0jBvQVvpS4PALYrA3dLCTSKY0lfRNAK1dRGPDmJ9aaElBBHQQYqPVQ1_-59q5X_9pg/exec";
+async function sendToSheet() {
+  if (run.status !== "answered") return;
+  try {
+    await fetch(SHEET_ENDPOINT, { method: "POST", mode: "no-cors", headers: { "Content-Type": "text/plain;charset=utf-8" }, body: JSON.stringify({ runId: run.runId, status: run.status, company: run.company, industry: run.industry, job: run.job, jobDescription: run.jobDescription, candidates: run.candidates, choice: run.choice, comment: run.comment }) });
+    state.saved = true;
+  } catch (e) { state.saved = false; }
+}
 const caps = { db: Promise.resolve(null), sample: Promise.resolve(null), user: Promise.resolve(null), downloads: Promise.resolve(null) };
 const TARGET_TESTERS = 10;
 
@@ -319,6 +327,7 @@ function saveRun(patch) {
   return writeChain;
 }
 async function doSave() {
+  if (STATIC_DEMO) return sendToSheet();
   const db = await caps.db, user = await caps.user;
   const uid = user ? await user.id() : null;
   if (!db || !uid) { state.saved = false; return; }
@@ -348,7 +357,7 @@ function renderSteps() {
 }
 async function renderFoot() {
   const f = $("#foot"); f.replaceChildren();
-  f.append(h("span", {}, "Side Hustle demo. The job description is a template and nothing you enter leaves your browser. All candidates are fictional."));
+  f.append(h("span", {}, "Side Hustle demo. The job description is a template, and your answers are sent to our project team when you finish. All candidates are fictional."));
   const user = await caps.user;
   let editor = false; try { editor = user ? await user.canEdit() : false; } catch (e) {}
   if (editor) f.append(location.hash === "#results" ? h("a", { href: "#test" }, "Back to the test") : h("a", { href: "#results" }, "Team results"));
@@ -387,6 +396,7 @@ function viewInputs() {
     h("div", { class: "field" }, h("label", { for: "company" }, "Company name"), company),
     h("div", { class: "field" }, h("label", { for: "industry" }, "Industry"), industry),
     h("div", { class: "field" }, h("label", { for: "job" }, "Short description of the job to be done"), h("p", { class: "hint" }, "A few sentences is plenty: the outcome you want and why you need it now."), job),
+    STATIC_DEMO ? h("p", { class: "hint" }, "This is a demo. When you finish, what you enter and your answer are sent to our project team.") : null,
     err,
     h("div", { class: "actions" }, h("button", { class: "btn", type: "submit" }, "Continue"))
   );
@@ -517,6 +527,7 @@ function fillMatches() {
   u.decision.append(h("div", { class: "panel" },
     h("h2", {}, "Would you like to move forward?"),
     h("fieldset", { class: "choices" }, h("legend", { class: "sr" }, "Your answer"), radio("Interested in moving forward", "Interested in moving forward"), radio("Not interested", "Not interested")),
+    STATIC_DEMO ? h("p", { class: "hint" }, "When you send your answer, what you entered and your answer go to our project team.") : null,
     h("div", { class: "field" }, h("label", { for: "comment" }, "Anything you'd like to add?"), comment),
     h("div", { class: "actions" }, h("button", { class: "btn secondary", type: "button", onclick: () => go(2) }, "Back to job description"), h("span", { class: "grow" }), submit)));
 }
@@ -531,12 +542,12 @@ async function copyText(text, btn) {
 }
 function viewDone() {
   const wrap = h("div", { class: "narrow", style: "display:flex;flex-direction:column;gap:24px" },
-    titleBlock("Done", "Thanks for trying the demo", "Nothing you entered was stored or sent anywhere."),
+    titleBlock("Done", "Thank you", "Your answer has been sent to our project team."),
     h("div", { class: "panel" },
       h("h2", {}, "About this prototype"),
-      h("p", { style: "margin:0" }, "The candidate profiles are fictional and written for this prototype. Nobody will contact you."),
+      h("p", { style: "margin:0" }, "The candidate profiles are fictional and written for this prototype. Nobody will contact you. What you entered and your answer are seen only by our project team."),
       h("div", { class: "actions" }, h("button", { class: "btn secondary", type: "button", onclick: () => { state.inputs = { company: "", industry: "", job: "" }; go(1); } }, "Start a new test"))));
-  if (state.saved !== true && !STATIC_DEMO) {
+  if (state.saved !== true) {
     const text = summaryText();
     const btn = h("button", { class: "btn", type: "button", onclick: () => copyText(text, btn) }, "Copy my answers");
     wrap.insertBefore(h("div", { class: "notice", role: "status" },

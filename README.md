@@ -3,7 +3,8 @@
 A static, single-page demo of the Side Hustle match test. Testers describe a job, review a drafted job description, see three matched specialists and answer Interested or Not interested.
 
 - **Everything is fictional.** The 90 specialists and their companies are invented.
-- **Demo limits.** The job description comes from a built-in template (no AI), matching uses keywords only, and nothing is saved or sent anywhere.
+- **Demo limits.** The job description comes from a built-in template (no AI) and matching uses keywords only.
+- **Responses.** When a tester finishes, their inputs and answer are posted to a Google Sheet through an Apps Script web app (see `SHEET_ENDPOINT` in `index.html`). The page tells testers this before they start.
 - **Files.** `index.html` is the whole site, with no build step or dependencies. The page asks search engines not to index it (`noindex`).
 
 ## Publish with GitHub Pages
